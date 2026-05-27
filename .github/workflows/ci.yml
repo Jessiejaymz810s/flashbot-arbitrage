@@ -1,0 +1,34 @@
+name: FlashArbitrage CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  test:
+    name: Build & Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Compile Contracts
+        run: npx hardhat compile
+
+      - name: Run Tests
+        # We run the tests without MAINNET_URL so it only runs local tests in CI
+        # to avoid needing Alchemy/Infura keys in GitHub Secrets for basic CI,
+        # but you can add them later if you want fork tests to run in CI.
+        run: npx hardhat test
