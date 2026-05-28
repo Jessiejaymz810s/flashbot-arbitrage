@@ -258,6 +258,29 @@
         let connectedWallet = null;
         let currentModalNft = null;
 
+        // ═══ PROVIDER DETECTION ═══
+        function getProvider() {
+            if (window.phantom?.solana?.isPhantom) return window.phantom.solana;
+            if (window.solana?.isPhantom) return window.solana;
+            return null;
+        }
+
+        // Wait for Phantom to inject (extensions load async)
+        function waitForProvider(timeout = 3000) {
+            return new Promise((resolve) => {
+                const provider = getProvider();
+                if (provider) return resolve(provider);
+                const start = Date.now();
+                const interval = setInterval(() => {
+                    const p = getProvider();
+                    if (p || Date.now() - start > timeout) {
+                        clearInterval(interval);
+                        resolve(p || null);
+                    }
+                }, 100);
+            });
+        }
+
         function getSoldItems() {
             try { return JSON.parse(localStorage.getItem('qz_sold') || '[]'); }
             catch { return []; }
@@ -314,25 +337,40 @@
         async function connectWallet() {
             const btn = document.getElementById('wallet-btn');
             if (connectedWallet) {
+                const provider = getProvider();
+                if (provider) provider.disconnect();
                 connectedWallet = null;
                 btn.classList.remove('connected');
                 btn.innerHTML = '🔗 Connect Wallet';
                 return;
             }
-            if (!window.solana || !window.solana.isPhantom) {
-                window.open('https://phantom.app/', '_blank');
-                showToast('Please install Phantom Wallet to buy NFTs', 'error');
+
+            showToast('⏳ Looking for Phantom...', 'pending', 2000);
+            const provider = await waitForProvider();
+
+            if (!provider) {
+                // Check if opened via file:// protocol
+                if (window.location.protocol === 'file:') {
+                    showToast('⚠️ Phantom cannot connect on file:// pages. Use the local server (http://localhost:8080)', 'error', 6000);
+                } else {
+                    window.open('https://phantom.app/', '_blank');
+                    showToast('Please install Phantom Wallet to buy NFTs', 'error');
+                }
                 return;
             }
             try {
-                const resp = await window.solana.connect();
+                const resp = await provider.connect();
                 connectedWallet = resp.publicKey.toString();
                 const short = connectedWallet.slice(0, 4) + '...' + connectedWallet.slice(-4);
                 btn.classList.add('connected');
                 btn.innerHTML = '<span class="wallet-dot"></span> ' + short;
-                showToast('Wallet connected!', 'success');
+                showToast('✅ Wallet connected!', 'success');
             } catch (err) {
-                showToast('Connection cancelled', 'error');
+                if (err.code === 4001 || err.message?.includes('User rejected')) {
+                    showToast('Connection cancelled by user', 'error');
+                } else {
+                    showToast('Connection failed: ' + (err.message || err), 'error');
+                }
             }
         }
 
@@ -363,7 +401,8 @@
                 const { blockhash } = await connection.getLatestBlockhash();
                 tx.recentBlockhash = blockhash;
 
-                const signed = await window.solana.signTransaction(tx);
+                const provider = getProvider();
+                const signed = await provider.signTransaction(tx);
                 showToast('⏳ Confirming on Solana...', 'pending');
                 const sig = await connection.sendRawTransaction(signed.serialize());
                 await connection.confirmTransaction(sig, 'confirmed');
@@ -441,22 +480,32 @@
         }
 
         // ═══ INIT ═══
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
             renderCards();
-            if (window.solana && window.solana.isPhantom) {
-                window.solana.on('connect', () => {
-                    connectedWallet = window.solana.publicKey.toString();
+            // Wait a moment for Phantom to inject
+            const provider = await waitForProvider(2000);
+            if (provider) {
+                provider.on('connect', () => {
+                    connectedWallet = provider.publicKey.toString();
                     const short = connectedWallet.slice(0, 4) + '...' + connectedWallet.slice(-4);
                     const btn = document.getElementById('wallet-btn');
                     btn.classList.add('connected');
                     btn.innerHTML = '<span class="wallet-dot"></span> ' + short;
                 });
-                window.solana.on('disconnect', () => {
+                provider.on('disconnect', () => {
                     connectedWallet = null;
                     const btn = document.getElementById('wallet-btn');
                     btn.classList.remove('connected');
                     btn.innerHTML = '🔗 Connect Wallet';
                 });
+                // Auto-reconnect if previously connected
+                if (provider.isConnected && provider.publicKey) {
+                    connectedWallet = provider.publicKey.toString();
+                    const short = connectedWallet.slice(0, 4) + '...' + connectedWallet.slice(-4);
+                    const btn = document.getElementById('wallet-btn');
+                    btn.classList.add('connected');
+                    btn.innerHTML = '<span class="wallet-dot"></span> ' + short;
+                }
             }
         });
 
