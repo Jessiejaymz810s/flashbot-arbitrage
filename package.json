@@ -58,5 +58,23 @@
     "hardhat": "^2.28.6",
     "hardhat-gas-reporter": "^1.0.10",
     "solidity-coverage": "^0.8.17"
+  },
+  "overrides": {
+    "lodash": "4.18.1",
+    "axios": "1.16.1",
+    "undici": "7.26.0",
+    "elliptic": "6.6.1",
+    "cookie": "1.0.2",
+    "serialize-javascript": "7.0.5",
+    "tmp": "0.2.6",
+    "qs": "6.15.2",
+    "fast-uri": "3.1.2",
+    "bn.js": "5.2.3",
+    "ethers": {
+      "ws": "8.21.0"
+    },
+    "@ethersproject/providers": {
+      "ws": "8.21.0"
+    }
   }
 }
