@@ -6,6 +6,7 @@
     <title>Quazr ($QZSOL) - The Cosmic Meme on Solana</title>
     <meta name="description" content="Quazr ($QZSOL) is the most powerful cosmic meme token on the Solana blockchain. Join the journey to the moon and beyond!">
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="frontend/marketplace.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;700&family=Space+Grotesk:wght@300;500;700&display=swap" rel="stylesheet">
@@ -20,6 +21,7 @@
             <a href="https://x.com/hoodpi_arris" target="_blank" rel="noopener noreferrer" class="btn-sm">Twitter</a>
             <a href="https://www.instagram.com/jjaybeeze1/" target="_blank" rel="noopener noreferrer" class="btn-sm">Instagram</a>
             <a href="#support" class="btn-sm btn-donate">Donate</a>
+            <button id="wallet-btn" class="btn-wallet" onclick="connectWallet()">🔗 Connect Wallet</button>
         </div>
     </nav>
 
@@ -95,38 +97,59 @@
             </div>
         </section>
 
-        <section id="collection" class="section">
-            <h2>The Cosmic Collection</h2>
-            <div class="nft-grid">
-                <div class="nft-card glass">
-                    <div class="nft-image-container">
-                        <img src="assets/nft/galactic_cat.png" alt="Galactic Cat">
-                    </div>
-                    <div class="nft-info">
-                        <h4>Galactic Cat</h4>
-                        <span class="rarity epic">Epic</span>
-                    </div>
+        <section id="collection" class="section marketplace-bg">
+            <div class="marketplace-header">
+                <h2>The Cosmic Collection</h2>
+                <p>Own a piece of the Quazr universe. Each piece is a unique 1-of-1 cosmic artifact.</p>
+            </div>
+
+            <div class="marketplace-stats">
+                <div class="stat-item">
+                    <div class="stat-value">3</div>
+                    <div class="stat-label">Total Items</div>
                 </div>
-                <div class="nft-card glass">
-                    <div class="nft-image-container">
-                        <img src="assets/nft/quazr_core.png" alt="Quazr Core">
-                    </div>
-                    <div class="nft-info">
-                        <h4>Quazr Core</h4>
-                        <span class="rarity legendary">Legendary</span>
-                    </div>
+                <div class="stat-item">
+                    <div class="stat-value">0.25</div>
+                    <div class="stat-label">Floor Price (SOL)</div>
                 </div>
-                <div class="nft-card glass">
-                    <div class="nft-image-container">
-                        <img src="assets/nft/shiba_astronaut.png" alt="Shiba Astronaut">
+                <div class="stat-item">
+                    <div class="stat-value" id="items-remaining">3</div>
+                    <div class="stat-label">Available</div>
+                </div>
+            </div>
+
+            <div class="market-grid" id="market-grid">
+                <!-- Cards rendered by JS -->
+            </div>
+        </section>
+
+        <!-- Detail Modal -->
+        <div class="modal-backdrop" id="nft-modal">
+            <div class="modal-content" style="position:relative;">
+                <button class="modal-close" onclick="closeModal()">✕</button>
+                <div class="modal-image">
+                    <img id="modal-img" src="" alt="">
+                </div>
+                <div class="modal-details">
+                    <div class="card-top-row">
+                        <h3 id="modal-name"></h3>
+                        <span class="rarity" id="modal-rarity"></span>
                     </div>
-                    <div class="nft-info">
-                        <h4>Shiba Astronaut</h4>
-                        <span class="rarity rare">Rare</span>
+                    <p class="modal-desc" id="modal-desc"></p>
+                    <div class="modal-traits" id="modal-traits"></div>
+                    <div class="modal-price-row">
+                        <div class="price-block">
+                            <span class="price-label">Price</span>
+                            <span class="price-value"><img src="https://cryptologos.cc/logos/solana-sol-logo.svg?v=024" class="sol-icon" alt="SOL"> <span id="modal-price"></span> SOL</span>
+                        </div>
+                        <button class="btn-buy" id="modal-buy-btn" onclick="buyFromModal()">Buy Now</button>
                     </div>
                 </div>
             </div>
-        </section>
+        </div>
+
+        <!-- Transaction Toast -->
+        <div class="tx-toast" id="tx-toast"></div>
 
         <section id="howtobuy" class="section glass">
             <h2>How to Buy</h2>
@@ -187,18 +210,257 @@
         </div>
     </footer>
 
+    <script src="https://unpkg.com/@solana/web3.js@1.95.8/lib/index.iife.min.js"></script>
     <script>
+        // ═══ CONFIG ═══
+        const RECEIVE_WALLET = 'ExnLqmHs1zMe4CbFtoygooiVSBomH2hwALWefeWQ1GHY';
+        const PRICE_SOL = 0.25;
+        const LAMPORTS = PRICE_SOL * 1e9;
+        const RPC_URL = 'https://api.mainnet-beta.solana.com';
+
+        const NFT_DATA = [
+            {
+                id: 'galactic_cat',
+                name: 'Galactic Cat',
+                desc: 'A majestic Galactic Cat from the Quazr ecosystem. Fur made of nebulae and eyes like glowing stars.',
+                image: 'assets/nft/galactic_cat.png',
+                rarity: 'Epic',
+                rarityClass: 'epic',
+                cardClass: 'rarity-epic',
+                traits: [{ type: 'Type', value: 'Feline' }, { type: 'Power', value: 'Cosmic' }],
+                price: PRICE_SOL
+            },
+            {
+                id: 'quazr_core',
+                name: 'Quazr Core',
+                desc: 'The hyper-realistic, glowing quasar at the center of the Quazr universe. Emitting pure cosmic energy.',
+                image: 'assets/nft/quazr_core.png',
+                rarity: 'Legendary',
+                rarityClass: 'legendary',
+                cardClass: 'rarity-legendary',
+                traits: [{ type: 'Type', value: 'Celestial' }, { type: 'Energy', value: 'Infinite' }],
+                price: PRICE_SOL
+            },
+            {
+                id: 'shiba_astronaut',
+                name: 'Shiba Astronaut',
+                desc: 'The iconic Shiba Astronaut exploring deep space with Quazr technology. To the moon and beyond!',
+                image: 'assets/nft/shiba_astronaut.png',
+                rarity: 'Rare',
+                rarityClass: 'rare',
+                cardClass: 'rarity-rare',
+                traits: [{ type: 'Type', value: 'Canine' }, { type: 'Suit', value: 'Cosmic Gold' }],
+                price: PRICE_SOL
+            }
+        ];
+
+        // ═══ STATE ═══
+        let connectedWallet = null;
+        let currentModalNft = null;
+
+        function getSoldItems() {
+            try { return JSON.parse(localStorage.getItem('qz_sold') || '[]'); }
+            catch { return []; }
+        }
+        function markSold(id) {
+            const sold = getSoldItems();
+            if (!sold.includes(id)) { sold.push(id); localStorage.setItem('qz_sold', JSON.stringify(sold)); }
+        }
+
+        // ═══ RENDER CARDS ═══
+        function renderCards() {
+            const grid = document.getElementById('market-grid');
+            const sold = getSoldItems();
+            let available = 0;
+            grid.innerHTML = NFT_DATA.map(nft => {
+                const isSold = sold.includes(nft.id);
+                if (!isSold) available++;
+                return `
+                <div class="market-card ${nft.cardClass}" data-id="${nft.id}">
+                    ${isSold ? '<div class="sold-overlay"><div class="sold-badge">SOLD</div></div>' : ''}
+                    <span class="edition-badge">1 of 1</span>
+                    <div class="card-image" onclick="openModal('${nft.id}')">
+                        <img src="${nft.image}" alt="${nft.name}" loading="lazy">
+                        <div class="view-overlay"><span>View Details</span></div>
+                    </div>
+                    <div class="card-top-row">
+                        <h4>${nft.name}</h4>
+                        <span class="rarity ${nft.rarityClass}">${nft.rarity}</span>
+                    </div>
+                    <p class="card-desc">${nft.desc}</p>
+                    <div class="card-traits">
+                        ${nft.traits.map(t => `<span class="trait-chip">${t.type}: ${t.value}</span>`).join('')}
+                    </div>
+                    <div class="card-bottom">
+                        <div class="price-block">
+                            <span class="price-label">Price</span>
+                            <span class="price-value">
+                                <img src="https://cryptologos.cc/logos/solana-sol-logo.svg?v=024" class="sol-icon" alt="SOL">
+                                ${nft.price} SOL
+                            </span>
+                        </div>
+                        <button class="btn-buy ${isSold ? 'sold' : ''}" 
+                                ${isSold ? 'disabled' : ''}
+                                onclick="buyNft('${nft.id}', this)">
+                            ${isSold ? 'SOLD' : 'Buy Now'}
+                        </button>
+                    </div>
+                </div>`;
+            }).join('');
+            document.getElementById('items-remaining').textContent = available;
+        }
+
+        // ═══ WALLET ═══
+        async function connectWallet() {
+            const btn = document.getElementById('wallet-btn');
+            if (connectedWallet) {
+                connectedWallet = null;
+                btn.classList.remove('connected');
+                btn.innerHTML = '🔗 Connect Wallet';
+                return;
+            }
+            if (!window.solana || !window.solana.isPhantom) {
+                window.open('https://phantom.app/', '_blank');
+                showToast('Please install Phantom Wallet to buy NFTs', 'error');
+                return;
+            }
+            try {
+                const resp = await window.solana.connect();
+                connectedWallet = resp.publicKey.toString();
+                const short = connectedWallet.slice(0, 4) + '...' + connectedWallet.slice(-4);
+                btn.classList.add('connected');
+                btn.innerHTML = '<span class="wallet-dot"></span> ' + short;
+                showToast('Wallet connected!', 'success');
+            } catch (err) {
+                showToast('Connection cancelled', 'error');
+            }
+        }
+
+        // ═══ PURCHASE ═══
+        async function buyNft(id, btnEl) {
+            if (getSoldItems().includes(id)) return;
+            if (!connectedWallet) {
+                await connectWallet();
+                if (!connectedWallet) return;
+            }
+            const nft = NFT_DATA.find(n => n.id === id);
+            if (!nft) return;
+
+            btnEl.classList.add('loading');
+            btnEl.disabled = true;
+            showToast('⏳ Preparing transaction...', 'pending');
+
+            try {
+                const { Connection, PublicKey, Transaction, SystemProgram } = solanaWeb3;
+                const connection = new Connection(RPC_URL, 'confirmed');
+                const fromPubkey = new PublicKey(connectedWallet);
+                const toPubkey = new PublicKey(RECEIVE_WALLET);
+
+                const tx = new Transaction().add(
+                    SystemProgram.transfer({ fromPubkey, toPubkey, lamports: LAMPORTS })
+                );
+                tx.feePayer = fromPubkey;
+                const { blockhash } = await connection.getLatestBlockhash();
+                tx.recentBlockhash = blockhash;
+
+                const signed = await window.solana.signTransaction(tx);
+                showToast('⏳ Confirming on Solana...', 'pending');
+                const sig = await connection.sendRawTransaction(signed.serialize());
+                await connection.confirmTransaction(sig, 'confirmed');
+
+                markSold(id);
+                renderCards();
+                showToast(`✅ Purchase complete! <a href="https://solscan.io/tx/${sig}" target="_blank">View TX</a>`, 'success', 8000);
+            } catch (err) {
+                console.error(err);
+                const msg = err.message?.includes('User rejected') ? 'Transaction cancelled' : 'Transaction failed: ' + (err.message || err);
+                showToast('❌ ' + msg, 'error');
+            } finally {
+                btnEl.classList.remove('loading');
+                if (!getSoldItems().includes(id)) { btnEl.disabled = false; }
+            }
+        }
+
+        // ═══ MODAL ═══
+        function openModal(id) {
+            const nft = NFT_DATA.find(n => n.id === id);
+            if (!nft) return;
+            currentModalNft = nft;
+            document.getElementById('modal-img').src = nft.image;
+            document.getElementById('modal-name').textContent = nft.name;
+            document.getElementById('modal-desc').textContent = nft.desc;
+            document.getElementById('modal-price').textContent = nft.price;
+            const rarityEl = document.getElementById('modal-rarity');
+            rarityEl.textContent = nft.rarity;
+            rarityEl.className = 'rarity ' + nft.rarityClass;
+            document.getElementById('modal-traits').innerHTML = nft.traits.map(t => `<span class="trait-chip">${t.type}: ${t.value}</span>`).join('');
+            const isSold = getSoldItems().includes(id);
+            const buyBtn = document.getElementById('modal-buy-btn');
+            buyBtn.textContent = isSold ? 'SOLD' : 'Buy Now';
+            buyBtn.className = 'btn-buy' + (isSold ? ' sold' : '');
+            buyBtn.disabled = isSold;
+            document.getElementById('nft-modal').classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeModal() {
+            document.getElementById('nft-modal').classList.remove('active');
+            document.body.style.overflow = '';
+            currentModalNft = null;
+        }
+
+        function buyFromModal() {
+            if (!currentModalNft) return;
+            closeModal();
+            const card = document.querySelector(`.market-card[data-id="${currentModalNft.id}"] .btn-buy`);
+            if (card) buyNft(currentModalNft.id, card);
+        }
+
+        document.getElementById('nft-modal').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('nft-modal')) closeModal();
+        });
+
+        // ═══ TOAST ═══
+        function showToast(msg, type = 'success', duration = 4000) {
+            const toast = document.getElementById('tx-toast');
+            toast.innerHTML = msg;
+            toast.className = 'tx-toast ' + type + ' show';
+            clearTimeout(toast._timer);
+            toast._timer = setTimeout(() => { toast.classList.remove('show'); }, duration);
+        }
+
+        // ═══ UTILS ═══
         function copyCA() {
-            const ca = document.getElementById('ca').innerText;
-            navigator.clipboard.writeText(ca);
-            alert('Contract Address copied to clipboard!');
+            navigator.clipboard.writeText(document.getElementById('ca').innerText);
+            showToast('📋 Contract address copied!', 'success', 2000);
         }
 
         function copySolAddress() {
-            const address = document.getElementById('sol-address').innerText;
-            navigator.clipboard.writeText(address);
-            alert('Solana Address copied to clipboard!');
+            navigator.clipboard.writeText(document.getElementById('sol-address').innerText);
+            showToast('📋 Solana address copied!', 'success', 2000);
         }
+
+        // ═══ INIT ═══
+        document.addEventListener('DOMContentLoaded', () => {
+            renderCards();
+            if (window.solana && window.solana.isPhantom) {
+                window.solana.on('connect', () => {
+                    connectedWallet = window.solana.publicKey.toString();
+                    const short = connectedWallet.slice(0, 4) + '...' + connectedWallet.slice(-4);
+                    const btn = document.getElementById('wallet-btn');
+                    btn.classList.add('connected');
+                    btn.innerHTML = '<span class="wallet-dot"></span> ' + short;
+                });
+                window.solana.on('disconnect', () => {
+                    connectedWallet = null;
+                    const btn = document.getElementById('wallet-btn');
+                    btn.classList.remove('connected');
+                    btn.innerHTML = '🔗 Connect Wallet';
+                });
+            }
+        });
+
+        document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
     </script>
 </body>
 </html>
