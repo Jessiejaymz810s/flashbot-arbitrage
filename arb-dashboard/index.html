@@ -8,6 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <div class="app-container">
@@ -15,9 +16,18 @@
             <div class="logo">
                 <span class="lightning">⚡</span> FlashArbitrage
             </div>
-            <div class="status-indicator">
-                <div class="dot" id="connection-dot"></div>
-                <span id="connection-text">Connecting...</span>
+            <div class="header-controls">
+                <div class="sound-toggle">
+                    <label class="switch">
+                        <input type="checkbox" id="sound-toggle" checked>
+                        <span class="slider round"></span>
+                    </label>
+                    <span class="toggle-label">Alerts 🔔</span>
+                </div>
+                <div class="status-indicator">
+                    <div class="dot" id="connection-dot"></div>
+                    <span id="connection-text">Connecting...</span>
+                </div>
             </div>
         </header>
 
@@ -45,28 +55,59 @@
                 </div>
             </section>
 
-            <section class="recent-activity">
-                <div class="activity-header">
-                    <h2>Recent Arbitrage Opportunities</h2>
+            <section class="main-content-grid">
+                <!-- Left Column: Chart & Activity -->
+                <div class="left-column">
+                    <div class="chart-container glass">
+                        <div class="activity-header">
+                            <h2>Live Profit Chart</h2>
+                        </div>
+                        <div style="position: relative; height: 300px; width: 100%;">
+                            <canvas id="profitChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="recent-activity">
+                        <div class="activity-header">
+                            <h2>Recent Arbitrage Opportunities</h2>
+                        </div>
+                        <div class="table-container glass">
+                            <table id="activity-table">
+                                <thead>
+                                    <tr>
+                                        <th>Time</th>
+                                        <th>Pair</th>
+                                        <th>Route</th>
+                                        <th>Profit (ETH)</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="activity-body">
+                                    <!-- Populated by JS -->
+                                    <tr class="empty-state" id="empty-state">
+                                        <td colspan="5">Scanning mempool for opportunities...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
-                <div class="table-container glass">
-                    <table id="activity-table">
-                        <thead>
-                            <tr>
-                                <th>Time</th>
-                                <th>Pair</th>
-                                <th>Route</th>
-                                <th>Profit (ETH)</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody id="activity-body">
-                            <!-- Populated by JS -->
-                            <tr class="empty-state" id="empty-state">
-                                <td colspan="5">Scanning mempool for opportunities...</td>
-                            </tr>
-                        </tbody>
-                    </table>
+
+                <!-- Right Column: Terminal -->
+                <div class="right-column">
+                    <div class="terminal-container glass">
+                        <div class="terminal-header">
+                            <div class="terminal-dots">
+                                <span class="tdot red"></span>
+                                <span class="tdot yellow"></span>
+                                <span class="tdot green"></span>
+                            </div>
+                            <span class="terminal-title">flashbot-searcher.mjs</span>
+                        </div>
+                        <div class="terminal-body" id="terminal-output">
+                            <!-- Logs will appear here -->
+                        </div>
+                    </div>
                 </div>
             </section>
         </main>
