@@ -1,7 +1,10 @@
+import fs from 'fs';
 import { createUmi } from '@metaplex-foundation/umi-bundle-defaults';
 import { createSignerFromKeypair, signerIdentity, generateSigner, percentAmount, some } from '@metaplex-foundation/umi';
 import { createNft, mplTokenMetadata } from '@metaplex-foundation/mpl-token-metadata';
 import { create, mplCandyMachine, addConfigLines } from '@metaplex-foundation/mpl-candy-machine';
+
+const KEYPAIR_FILE = 'devnet-keypair.json';
 
 async function main() {
     console.log("Initializing Umi on Devnet...");
@@ -9,20 +12,42 @@ async function main() {
         .use(mplTokenMetadata())
         .use(mplCandyMachine());
 
-    // Generate a new keypair for the creator
-    const creatorKeypair = umi.eddsa.generateKeypair();
+    let creatorKeypair;
+    if (fs.existsSync(KEYPAIR_FILE)) {
+        console.log("Found existing keypair file.");
+        const secretKey = new Uint8Array(JSON.parse(fs.readFileSync(KEYPAIR_FILE, 'utf-8')));
+        creatorKeypair = umi.eddsa.createKeypairFromSecretKey(secretKey);
+    } else {
+        console.log("Generating a new keypair...");
+        creatorKeypair = umi.eddsa.generateKeypair();
+        fs.writeFileSync(KEYPAIR_FILE, JSON.stringify(Array.from(creatorKeypair.secretKey)));
+        console.log(`Keypair saved to ${KEYPAIR_FILE}`);
+    }
+
     const creatorSigner = createSignerFromKeypair(umi, creatorKeypair);
     umi.use(signerIdentity(creatorSigner));
-    console.log("Creator Address:", creatorSigner.publicKey.toString());
+    const address = creatorSigner.publicKey.toString();
+    console.log("=========================================");
+    console.log("Creator Address:", address);
+    console.log("=========================================");
 
-    // Airdrop SOL (on devnet)
-    console.log("Airdropping 2 SOL to creator...");
-    await umi.rpc.airdrop(creatorSigner.publicKey, { lamports: 2000000000n });
-    console.log("Airdrop complete. Waiting 2 seconds...");
-    await new Promise(r => setTimeout(r, 2000));
+    // Check balance
+    const balance = await umi.rpc.getBalance(creatorSigner.publicKey);
+    console.log(`Current Balance: ${Number(balance.basisPoints) / 1e9} SOL`);
+
+    if (Number(balance.basisPoints) < 500000000) { // Need at least 0.5 SOL
+        console.log("\n❌ INSUFFICIENT FUNDS");
+        console.log("The Solana Devnet automated airdrop is currently rate-limited.");
+        console.log(`Please manually fund this address:`);
+        console.log(`👉 ${address}`);
+        console.log(`1. Go to https://faucet.solana.com`);
+        console.log(`2. Paste your address and request Devnet SOL.`);
+        console.log(`3. Run this script again once funded.\n`);
+        return;
+    }
 
     // 1. Create a Collection NFT
-    console.log("Creating Collection NFT...");
+    console.log("\nCreating Collection NFT...");
     const collectionMint = generateSigner(umi);
     await createNft(umi, {
         mint: collectionMint,
@@ -30,7 +55,7 @@ async function main() {
         uri: "https://raw.githubusercontent.com/Jessiejaymz810s/flashbot-arbitrage/main/frontend/assets/nft/quazr_core.png",
         sellerFeeBasisPoints: percentAmount(0),
         isCollection: true,
-    }).sendAndConfirm(umi);
+    }).sendAndConfirm(umi, { confirm: { commitment: "confirmed" } });
     console.log("Collection NFT created:", collectionMint.publicKey.toString());
 
     // 2. Create Candy Machine
@@ -57,7 +82,7 @@ async function main() {
             uriLength: 20,
             isSequential: false,
         }),
-    }).sendAndConfirm(umi);
+    }).sendAndConfirm(umi, { confirm: { commitment: "confirmed" } });
     console.log("Candy Machine created:", candyMachine.publicKey.toString());
 
     // 3. Add Items to Candy Machine
@@ -72,13 +97,13 @@ async function main() {
             { name: "4", uri: "4.json" },
             { name: "5", uri: "5.json" },
         ],
-    }).sendAndConfirm(umi);
+    }).sendAndConfirm(umi, { confirm: { commitment: "confirmed" } });
 
-    console.log("✅ Candy Machine Setup Complete!");
+    console.log("\n✅ Candy Machine Setup Complete!");
     console.log("=========================================");
     console.log("CANDY_MACHINE_ID:", candyMachine.publicKey.toString());
     console.log("COLLECTION_MINT:", collectionMint.publicKey.toString());
-    console.log("=========================================");
+    console.log("=========================================\n");
 }
 
 main().catch(console.error);

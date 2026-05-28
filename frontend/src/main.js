@@ -1,4 +1,5 @@
 import { Connection, PublicKey, Transaction, SystemProgram } from '@solana/web3.js';
+import { setupMinting } from './mint.js';
 
 // ═══ CONFIG ═══
 const RECEIVE_WALLET = 'ExnLqmHs1zMe4CbFtoygooiVSBomH2hwALWefeWQ1GHY';
@@ -283,6 +284,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 btn.classList.add('connected');
                 btn.innerHTML = '<span class="wallet-dot"></span> ' + short;
             }
+            setupMinting(provider);
         });
         provider.on('disconnect', () => {
             connectedWallet = null;
@@ -291,6 +293,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 btn.classList.remove('connected');
                 btn.innerHTML = '🔗 Connect Wallet';
             }
+            setupMinting(null);
         });
         if (provider.isConnected && provider.publicKey) {
             connectedWallet = provider.publicKey.toString();
@@ -300,6 +303,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                 btn.classList.add('connected');
                 btn.innerHTML = '<span class="wallet-dot"></span> ' + short;
             }
+            setupMinting(provider);
+        } else {
+            setupMinting(null);
         }
+    } else {
+        setupMinting(null);
     }
 });
