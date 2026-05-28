@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flashbots Arbitrage Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <header class="header glass">
+            <div class="logo">
+                <span class="lightning">⚡</span> FlashArbitrage
+            </div>
+            <div class="status-indicator">
+                <div class="dot" id="connection-dot"></div>
+                <span id="connection-text">Connecting...</span>
+            </div>
+        </header>
+
+        <main class="dashboard">
+            <section class="overview">
+                <div class="stat-card glass">
+                    <h3>Total Profit</h3>
+                    <div class="stat-value highlight" id="stat-profit">0.000 ETH</div>
+                </div>
+                <div class="stat-card glass">
+                    <h3>Successful Trades</h3>
+                    <div class="stat-value" id="stat-trades">0</div>
+                </div>
+                <div class="stat-card glass">
+                    <h3>Opportunities Found</h3>
+                    <div class="stat-value" id="stat-opps">0</div>
+                </div>
+                <div class="stat-card glass">
+                    <h3>Scans Completed</h3>
+                    <div class="stat-value" id="stat-scans">0</div>
+                </div>
+                <div class="stat-card glass">
+                    <h3>Uptime</h3>
+                    <div class="stat-value" id="stat-uptime">0h 0m</div>
+                </div>
+            </section>
+
+            <section class="recent-activity">
+                <div class="activity-header">
+                    <h2>Recent Arbitrage Opportunities</h2>
+                </div>
+                <div class="table-container glass">
+                    <table id="activity-table">
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>Pair</th>
+                                <th>Route</th>
+                                <th>Profit (ETH)</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="activity-body">
+                            <!-- Populated by JS -->
+                            <tr class="empty-state" id="empty-state">
+                                <td colspan="5">Scanning mempool for opportunities...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>
