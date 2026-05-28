@@ -5,8 +5,8 @@ import { setComputeUnitLimit } from '@metaplex-foundation/mpl-toolbox';
 import { transactionBuilder, generateSigner, some } from '@metaplex-foundation/umi';
 
 // Use a fallback Devnet Candy Machine ID if you have one, or a placeholder
-const CANDY_MACHINE_ID = "YourCandyMachineAddressHere";
-const COLLECTION_MINT = "YourCollectionMintAddressHere";
+const CANDY_MACHINE_ID = "27q6MzL3jQnRWdJfFqTU8SYoqk3oxKpSrzbQWViRkuo9";
+const COLLECTION_MINT = "8bbsLXnB86yKa2HScBmE8zarbAMYhoqFKLnSUd1arxGk";
 
 let umi = null;
 

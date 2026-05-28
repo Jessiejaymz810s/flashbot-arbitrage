@@ -1,6 +1,6 @@
 import fs from 'fs';
 import { createUmi } from '@metaplex-foundation/umi-bundle-defaults';
-import { createSignerFromKeypair, signerIdentity, generateSigner, percentAmount, some } from '@metaplex-foundation/umi';
+import { createSignerFromKeypair, signerIdentity, generateSigner, percentAmount, some, transactionBuilder } from '@metaplex-foundation/umi';
 import { createNft, mplTokenMetadata } from '@metaplex-foundation/mpl-token-metadata';
 import { create, mplCandyMachine, addConfigLines } from '@metaplex-foundation/mpl-candy-machine';
 
@@ -55,13 +55,14 @@ async function main() {
         uri: "https://raw.githubusercontent.com/Jessiejaymz810s/flashbot-arbitrage/main/frontend/assets/nft/quazr_core.png",
         sellerFeeBasisPoints: percentAmount(0),
         isCollection: true,
-    }).sendAndConfirm(umi, { confirm: { commitment: "confirmed" } });
+        tokenOwner: creatorSigner.publicKey,
+    }).sendAndConfirm(umi, { confirm: { commitment: "finalized" } });
     console.log("Collection NFT created:", collectionMint.publicKey.toString());
 
     // 2. Create Candy Machine
     console.log("Creating Candy Machine...");
     const candyMachine = generateSigner(umi);
-    await create(umi, {
+    const createTx = await create(umi, {
         candyMachine,
         collectionMint: collectionMint.publicKey,
         collectionUpdateAuthority: creatorSigner,
@@ -82,12 +83,16 @@ async function main() {
             uriLength: 20,
             isSequential: false,
         }),
-    }).sendAndConfirm(umi, { confirm: { commitment: "confirmed" } });
+    });
+    
+    await transactionBuilder()
+        .add(createTx)
+        .sendAndConfirm(umi, { confirm: { commitment: "finalized" } });
     console.log("Candy Machine created:", candyMachine.publicKey.toString());
 
     // 3. Add Items to Candy Machine
     console.log("Loading items into Candy Machine...");
-    await addConfigLines(umi, {
+    const addItemsTx = await addConfigLines(umi, {
         candyMachine: candyMachine.publicKey,
         index: 0,
         configLines: [
@@ -97,7 +102,11 @@ async function main() {
             { name: "4", uri: "4.json" },
             { name: "5", uri: "5.json" },
         ],
-    }).sendAndConfirm(umi, { confirm: { commitment: "confirmed" } });
+    });
+    
+    await transactionBuilder()
+        .add(addItemsTx)
+        .sendAndConfirm(umi, { confirm: { commitment: "confirmed" } });
 
     console.log("\n✅ Candy Machine Setup Complete!");
     console.log("=========================================");
