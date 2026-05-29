@@ -52,7 +52,7 @@ async function main() {
     await createNft(umi, {
         mint: collectionMint,
         name: "Quazr Genesis Pass",
-        uri: "https://raw.githubusercontent.com/Jessiejaymz810s/flashbot-arbitrage/main/frontend/assets/nft/quazr_core.png",
+        uri: "https://raw.githubusercontent.com/Jessiejaymz810s/quazr-nft/main/frontend/assets/nft/quazr_core.png",
         sellerFeeBasisPoints: percentAmount(0),
         isCollection: true,
         tokenOwner: creatorSigner.publicKey,
